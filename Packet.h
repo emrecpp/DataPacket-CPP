@@ -527,7 +527,7 @@ public:
 				char* elems = getElements(addr, addr + leftBytes);
 				char* buffAddress = (char*)(malloc(8)); char* buffHexBytes = (char*)(malloc(128));
 				if ((Flag & 1) == 1)
-					sprintf(buffAddress, "%08d ", addr);
+					sprintf(buffAddress, "%08X ", addr);
 				line += buffAddress;
 
 
