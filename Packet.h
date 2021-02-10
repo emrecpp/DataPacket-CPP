@@ -10,6 +10,7 @@ Version: 1.0.0
 #include <Windows.h>
 #include <vector>
 #include <algorithm>
+#include <iomanip> // std::setfill
 
 #ifdef _WIN32
 #define INLINE __forceinline
