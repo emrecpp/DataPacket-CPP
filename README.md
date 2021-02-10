@@ -18,7 +18,7 @@ int main(){
     SYSTEMTIME NowTime;
     GetSystemTime(&NowTime);
     
-    paket << "emre" << 123 << 1.5f << NowTime;
+    paket << "Emre" << 123 << 1.5f << NowTime;
     
     string name;
     int number;
