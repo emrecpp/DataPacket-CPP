@@ -1,6 +1,6 @@
 /*
 Author: Emre Demircan
-Date: 2021-02-09
+Date: 2021-02-21
 Github: emrecpp
 Version: 1.0.0
 
@@ -10,7 +10,6 @@ Version: 1.0.0
 #include <Windows.h>
 #include <vector>
 #include <algorithm>
-#include <iomanip> // std::setfill
 
 #ifdef _WIN32
 #define INLINE __forceinline
@@ -40,7 +39,7 @@ public:
 	template <typename T> void append(T value) { if (!isLittleEndian) reverseBytes(&value); append((uint8_t*)&value, sizeof(value)); }
 	template <typename T> void put(size_t pos, T value) { put(pos, (uint8_t*)&value, sizeof(value)); }
 
-	ByteBuffer& operator<<(bool value) { append<char>((char)value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(bool value) { append(&value,1); increaseItemCount(); return *this; }
 
 	ByteBuffer& operator<<(uint8_t value)
 	{
@@ -331,6 +330,7 @@ class Packet : public ByteBuffer
 public:
 	INLINE Packet() : ByteBuffer()
 	{
+		*this = Packet(0);
 	}
 	bool operator==(Packet TargetPacket) {
 		if (TargetPacket.size() != this->size())
@@ -498,23 +498,7 @@ public:
 
 		return true;
 	}
-
-	bool SendAll(SOCKET s, const void* data, int numberOfBytes)
-	{
-		int totalBytesSent = 0;
-
-		while (totalBytesSent < numberOfBytes)
-		{
-			uint32_t bytesSent = 0;
-			char* bufferOffset = (char*)data + totalBytesSent;
-			if (!Send(s, bufferOffset, numberOfBytes - totalBytesSent, bytesSent))
-				return false;
-
-			totalBytesSent += bytesSent;
-		}
-
-		return true;
-	}
+	
 
 
 	string Print(int maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
@@ -570,6 +554,23 @@ public:
 			return "";
 		}
 	}
+	private:
+		bool SendAll(SOCKET s, const void* data, int numberOfBytes)
+		{
+			int totalBytesSent = 0;
+
+			while (totalBytesSent < numberOfBytes)
+			{
+				uint32_t bytesSent = 0;
+				char* bufferOffset = (char*)data + totalBytesSent;
+				if (!Send(s, bufferOffset, numberOfBytes - totalBytesSent, bytesSent))
+					return false;
+
+				totalBytesSent += bytesSent;
+			}
+
+			return true;
+		}
 	struct Flags {
 	public:
 		const static int Encrypted = 1;
