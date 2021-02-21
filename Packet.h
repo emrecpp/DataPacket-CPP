@@ -271,9 +271,9 @@ public:
 	void reserve(size_t ressize) { if (ressize > size()) _storage.reserve(ressize); };
 
 
-	void append(const std::string& str) { append((uint8_t*)str.c_str(), str.size() + 1); }
-	void append(const char* src, size_t cnt) { return append((const uint8_t*)src, cnt); }
-	void append(const void* src, size_t cnt)
+	INLINE void append(const std::string& str) { append((uint8_t*)str.c_str(), str.size() + 1); }
+	INLINE void append(const char* src, size_t cnt) { return append((const uint8_t*)src, cnt); }
+	INLINE void append(const void* src, size_t cnt)
 	{
 		if (!cnt)
 			return;
@@ -288,7 +288,7 @@ public:
 		memcpy(&_storage[_wpos], src, cnt);
 		_wpos += cnt;
 	}
-	void reverseBytes(void* start, int size = 0) {
+	INLINE void reverseBytes(void* start, int size = 0) {
 		unsigned char* lo = (unsigned char*)start;
 		if (size == 0)
 			size = sizeof(start);
@@ -300,8 +300,8 @@ public:
 			*hi-- = swap;
 		}
 	}
-	void append(const ByteBuffer& buffer) { if (buffer.size() > 0) append(buffer.contents(), buffer.size()); }
-	void append(const ByteBuffer& buffer, size_t len)
+	INLINE void append(const ByteBuffer& buffer) { if (buffer.size() > 0) append(buffer.contents(), buffer.size()); }
+	INLINE void append(const ByteBuffer& buffer, size_t len)
 	{
 		//ASSERT(buffer.rpos() + len <= buffer.size());
 		append(buffer.contents() + buffer.rpos(), len);
@@ -433,7 +433,7 @@ public:
 		SocketRet = SocketReturn::BASARILI;
 		return true;
 	}
-
+private:
 	bool RecvAll(SOCKET s, void* destination, int numberOfBytes, int& SonucRet)
 	{
 		uint32_t totalBytesReceived = 0;
@@ -451,8 +451,19 @@ public:
 		SonucRet = SocketReturn::BASARILI;
 		return true;
 	}
+	bool Send(SOCKET s, const void* data, int numberOfBytes, uint32_t& bytesSent)
+	{
+		bytesSent = send(s, (const char*)data, numberOfBytes, NULL);
 
+		if (bytesSent == SOCKET_ERROR)
+		{
+			int error = WSAGetLastError();
+			return false;
+		}
 
+		return true;
+	}
+public:
 	bool Recv(SOCKET s, u_long& dwPktSize, int& SonucRet)
 	{
 		uint32_t encodedSize = 0;
@@ -485,21 +496,6 @@ public:
 
 		return true;
 	}
-
-	bool Send(SOCKET s, const void* data, int numberOfBytes, uint32_t& bytesSent)
-	{
-		bytesSent = send(s, (const char*)data, numberOfBytes, NULL);
-
-		if (bytesSent == SOCKET_ERROR)
-		{
-			int error = WSAGetLastError();
-			return false;
-		}
-
-		return true;
-	}
-	
-
 
 	string Print(int maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
 		try {
