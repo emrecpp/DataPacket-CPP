@@ -1,11 +1,12 @@
 /*
 Author: Emre Demircan
-Date: 2021-02-21
+Date: 2021-03-22
 Github: emrecpp
-Version: 1.0.0
+Version: 1.0.1
 
 */
-
+#ifndef PACKET_H
+#define PACKET_H
 #include <iostream>
 #include <Windows.h>
 #include <vector>
@@ -16,7 +17,8 @@ Version: 1.0.0
 #else
 #define INLINE inline
 #endif
-
+using std::string; using std::vector;
+#pragma warning(disable:4996) //#define _CRT_SECURE_NO_WARNINGS
 class ByteBuffer
 {
 
@@ -36,7 +38,11 @@ public:
 
 
 
-	template <typename T> void append(T value) { if (!isLittleEndian) reverseBytes(&value); append((uint8_t*)&value, sizeof(value)); }
+	template <typename T> void append(T value) {
+		/*if (!isLittleEndian) 
+			reverseBytes(&value); */
+		append((uint8_t*)&value, sizeof(value));
+	}
 	template <typename T> void put(size_t pos, T value) { put(pos, (uint8_t*)&value, sizeof(value)); }
 
 	ByteBuffer& operator<<(bool value) { append(&value,1); increaseItemCount(); return *this; }
@@ -61,10 +67,11 @@ public:
 			_storage[INDEX_OF_COUNT_ELEMENTS] += 1;
 	}
 
-	template <typename T>
+	template <typename T> /* Custom Struct/Class, don't use std::string because maximum allowed character size is 16. bigger than 16 bytes will be corrupted.*/
 	ByteBuffer& operator<<(T value)
 	{
-		if (!isLittleEndian) reverseBytes(&value);
+		/*if (!isLittleEndian)
+			reverseBytes(&value, sizeof(value));*/
 		append<T>(value); return *this;
 	}
 
@@ -93,10 +100,10 @@ public:
 
 	ByteBuffer& operator<<(vector<string>& value)
 	{
-		uint16_t len = value.size();
+		uint16_t len = (uint16_t)value.size();
 		append<uint16_t>(len);
 
-		for (int i = 0; i < value.size(); ++i) {
+		for (size_t i = 0; i < value.size(); ++i) {
 			string element = value.data()[i];
 			int elementLength = element.size();
 
@@ -184,7 +191,8 @@ public:
 	{
 		//uint16_t len;		
 		uint32_t len;
-		value.clear();
+		if (!value.empty())
+			value.clear();
 		len = htonl(read<uint32_t>());
 
 		if (_rpos + len <= size())
@@ -218,6 +226,8 @@ public:
 
 	template <typename T> T read()
 	{
+		if (_rpos + sizeof(T) > size())
+			return NULL;
 		T r = read<T>(_rpos);
 
 		_rpos += sizeof(T);
@@ -364,8 +374,11 @@ public:
 	void clear(uint16_t opcode = 0)
 	{
 		//if (size() > 0 && GetOpcode() != 0)
+		if (opcode == 0)
+			opcode = this->GetOpcode();
 		_storage.clear();
 		_rpos = _wpos = 0;
+		
 		reverseBytes(&opcode, 2);
 		append(&opcode, 2);
 		append(new const char[] {0, 0, 0, 0}, 4);
@@ -393,9 +406,10 @@ public:
 		return opcode;
 	}
 
-	INLINE void Initialize(uint16_t opcode)
+	INLINE Packet Initialize(uint16_t opcode)
 	{
 		clear(opcode); // reverseBytes(&opcode,2);
+		return *this;
 	}
 
 
@@ -410,6 +424,7 @@ public:
 		BASARISIZ = 0,
 		BAGLANTI_KESILDI = -1
 	};
+private:
 	bool Recv(SOCKET s, void* destination, int numberOfBytes, int& bytesReceived, int& SocketRet)
 	{
 		bytesReceived = recv(s, (char*)destination, numberOfBytes, NULL);
@@ -433,8 +448,7 @@ public:
 		SocketRet = SocketReturn::BASARILI;
 		return true;
 	}
-private:
-	bool RecvAll(SOCKET s, void* destination, int numberOfBytes, int& SonucRet)
+	bool RecvAll(SOCKET s, void* destination, uint32_t numberOfBytes, int& SonucRet)
 	{
 		uint32_t totalBytesReceived = 0;
 
@@ -481,30 +495,41 @@ public:
 		_wpos = size();
 		return true;
 	}
-
+	bool Recv(SOCKET s) {
+		u_long dwPktSize;
+		int SonucRet;
+		return Recv(s, dwPktSize, SonucRet);
+	}
 	bool Send(SOCKET s)
 	{
-		if (s == INVALID_SOCKET)
+		if (s == INVALID_SOCKET) 
 			return false;
-
+		if (this->GetOpcode() == 0)
+		{
+			printf("opcodes was 0. breakpoint.\n");
+		}
 		uint32_t encodedPacketSize = htonl(this->storage().size());
-		if (!SendAll(s, &encodedPacketSize, sizeof(uint32_t)))
+		if (!SendAll(s, &encodedPacketSize, sizeof(uint32_t))) 
 			return false;
+		
 
-		if (!SendAll(s, this->storage().data(), this->storage().size()))
+		if (!SendAll(s, this->_storage.data(), this->size())) {
+			printf("ERRR Send 3\n");
 			return false;
+		}
 
 		return true;
 	}
 
-	string Print(int maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
+	string Print(size_t maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
 		try {
+			printf("\n\n*** PACKET SIZE: %d ***", size());
 			string Total = "";
 			string dumpstr = "";
-			for (int addr = 0; addr < size(); addr += maxPerLine)
+			for (size_t addr = 0; addr < size(); addr += maxPerLine)
 			{
 				string line = "";
-				int leftBytes = (addr + maxPerLine < size()) ? maxPerLine : size() - addr;
+				size_t leftBytes = (addr + maxPerLine < size()) ? maxPerLine : size() - addr;
 				char* elems = getElements(addr, addr + leftBytes);
 				char* buffAddress = (char*)(malloc(8)); char* buffHexBytes = (char*)(malloc(128));
 				if ((Flag & 1) == 1)
@@ -514,8 +539,8 @@ public:
 
 				if ((Flag & 2) == 2) {
 					std::stringstream ss;
-					for (int x = 0; x < leftBytes; x++)
-						ss << std::setfill('0') << std::setw(2) << std::hex << (int)(elems[x] & 255) << ' ';
+					for (size_t x = 0; x < leftBytes; x++)
+						ss << std::uppercase << std::setfill('0') << std::setw(2) << std::hex << (int)(elems[x] & 255) << ' ';
 
 					dumpstr = ss.str();
 				}
@@ -532,7 +557,7 @@ public:
 				if ((Flag & 4) == 4)
 				{
 					line += ' ';
-					for (int bytes = 0; bytes < size(); bytes++)
+					for (size_t bytes = 0; bytes < leftBytes; bytes++)
 					{
 						if (elems[bytes] > 0x20 && elems[bytes] <= 0x7E)
 							line += (char)elems[bytes];
@@ -574,3 +599,4 @@ public:
 	};
 
 };
+#endif
