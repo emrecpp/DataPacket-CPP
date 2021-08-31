@@ -1,16 +1,22 @@
 /*
 Author: Emre Demircan
-Date: 2021-03-22
+Date: 2021-08-31
 Github: emrecpp
-Version: 1.0.1
+Version: 1.0.2
 
 */
 #ifndef PACKET_H
 #define PACKET_H
+#define _WINSOCKAPI_    // stops windows.h including winsock.h
+
 #include <iostream>
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <vector>
 #include <algorithm>
+#include <iomanip> // Print: setfill, setw
+#include <sstream> // Print: std::stringstream
+#pragma comment(lib, "Ws2_32.lib")
 
 #ifdef _WIN32
 #define INLINE __forceinline
@@ -39,9 +45,9 @@ public:
 
 
 	template <typename T> void append(T value) {
-		/*if (!isLittleEndian) 
-			reverseBytes(&value); */
-		append((uint8_t*)&value, sizeof(value));
+		if (!isLittleEndian) 
+			reverseBytes(&value); 
+ 		append((uint8_t*)&value, sizeof(value));
 	}
 	template <typename T> void put(size_t pos, T value) { put(pos, (uint8_t*)&value, sizeof(value)); }
 
@@ -420,21 +426,21 @@ public:
 		this->_storage = storage;
 	}
 	enum SocketReturn : int {
-		BASARILI = 1,
-		BASARISIZ = 0,
-		BAGLANTI_KESILDI = -1
+		SUCCESS = 1,
+		FAIL = 0,
+		CONNECTION_LOST = -1
 	};
 private:
 	bool Recv(SOCKET s, void* destination, int numberOfBytes, int& bytesReceived, int& SocketRet)
-	{
+	{		
 		bytesReceived = recv(s, (char*)destination, numberOfBytes, NULL);
 		if (bytesReceived == -1) {
-			SocketRet = SocketReturn::BAGLANTI_KESILDI;
+			SocketRet = SocketReturn::CONNECTION_LOST;
 			return false;
 		}
 		if (bytesReceived == 0) //If connection was gracefully closed		
 		{
-			SocketRet = SocketReturn::BASARISIZ;
+			SocketRet = SocketReturn::FAIL;
 			return false;
 		}
 
@@ -442,10 +448,10 @@ private:
 		if (bytesReceived == SOCKET_ERROR)
 		{
 			int error = WSAGetLastError();
-			SocketRet = SocketReturn::BASARISIZ;
+			SocketRet = SocketReturn::FAIL;
 			return false;
 		}
-		SocketRet = SocketReturn::BASARILI;
+		SocketRet = SocketReturn::SUCCESS;
 		return true;
 	}
 	bool RecvAll(SOCKET s, void* destination, uint32_t numberOfBytes, int& SonucRet)
@@ -462,7 +468,7 @@ private:
 
 			totalBytesReceived += bytesReceived;
 		}
-		SonucRet = SocketReturn::BASARILI;
+		SonucRet = SocketReturn::SUCCESS;
 		return true;
 	}
 	bool Send(SOCKET s, const void* data, int numberOfBytes, uint32_t& bytesSent)
@@ -504,26 +510,20 @@ public:
 	{
 		if (s == INVALID_SOCKET) 
 			return false;
-		if (this->GetOpcode() == 0)
-		{
-			printf("opcodes was 0. breakpoint.\n");
-		}
+
 		uint32_t encodedPacketSize = htonl(this->storage().size());
 		if (!SendAll(s, &encodedPacketSize, sizeof(uint32_t))) 
-			return false;
-		
+			return false;		
 
-		if (!SendAll(s, this->_storage.data(), this->size())) {
-			printf("ERRR Send 3\n");
-			return false;
-		}
+		if (!SendAll(s, this->_storage.data(), this->size()))
+			return false;		
 
 		return true;
 	}
 
-	string Print(size_t maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
+	string Print(string title="", size_t maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
 		try {
-			printf("\n\n*** PACKET SIZE: %d ***", size());
+			printf("\n\n*** %s (Size: %d) ***", title.c_str(),size());
 			string Total = "";
 			string dumpstr = "";
 			for (size_t addr = 0; addr < size(); addr += maxPerLine)
@@ -595,7 +595,7 @@ public:
 	struct Flags {
 	public:
 		const static int Encrypted = 1;
-		const static int isLittleEndian = 2;
+		const static int LittleEndian = 2;
 	};
 
 };
