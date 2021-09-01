@@ -45,8 +45,8 @@ public:
 
 
 	template <typename T> void append(T value) {
-		if (!isLittleEndian) 
-			reverseBytes(&value); 
+		/*if (!isLittleEndian) 
+			reverseBytes(&value); */
  		append((uint8_t*)&value, sizeof(value));
 	}
 	template <typename T> void put(size_t pos, T value) { put(pos, (uint8_t*)&value, sizeof(value)); }
@@ -98,7 +98,7 @@ public:
 	ByteBuffer& operator>>(uint64_t& value) { value = read<uint64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int8_t& value) { value = read<int8_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int16_t& value) { value = read<int16_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
+	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>(); /* WARNING */if (isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int64_t& value) { value = read<int64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 
 	ByteBuffer& operator>>(float& value) { value = read<float>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
