@@ -98,7 +98,7 @@ public:
 	ByteBuffer& operator>>(uint64_t& value) { value = read<uint64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int8_t& value) { value = read<int8_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int16_t& value) { value = read<int16_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>(); /* WARNING */if (isLittleEndian) reverseBytes(&value); return *this; }
+	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>(); /* NO REVERSING BYTES */ return *this; }
 	ByteBuffer& operator>>(int64_t& value) { value = read<int64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 
 	ByteBuffer& operator>>(float& value) { value = read<float>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
