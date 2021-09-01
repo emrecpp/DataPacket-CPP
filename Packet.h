@@ -45,26 +45,25 @@ public:
 
 
 	template <typename T> void append(T value) {
-		/*if (!isLittleEndian) 
-			reverseBytes(&value); */
- 		append((uint8_t*)&value, sizeof(value));
+		// Hard coded, no reversing bytes
+		append((uint8_t*)&value, sizeof(value));
 	}
 	template <typename T> void put(size_t pos, T value) { put(pos, (uint8_t*)&value, sizeof(value)); }
 
-	ByteBuffer& operator<<(bool value) { append(&value,1); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(bool value) { append(&value, 1); increaseItemCount(); return *this; }
 
 	ByteBuffer& operator<<(uint8_t value)
 	{
 		if (!isLittleEndian) reverseBytes(&value);
 		append<uint8_t>(value); return *this;
 	}
-	ByteBuffer& operator<<(uint16_t value) { append<uint16_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(uint32_t value) { append<uint32_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(uint64_t value) { append<uint64_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint16_t value) { if (!isLittleEndian) reverseBytes(&value); append<uint16_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint32_t value) { if (!isLittleEndian) reverseBytes(&value); append<uint32_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint64_t value) { if (!isLittleEndian) reverseBytes(&value); append<uint64_t>(value); increaseItemCount(); return *this; }
 	ByteBuffer& operator<<(int8_t value) { append<int8_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int16_t value) { append<int16_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int32_t value) { append<int32_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int64_t value) { append<int64_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int16_t value) { if (!isLittleEndian) reverseBytes(&value); append<int16_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int32_t value) { if (!isLittleEndian) reverseBytes(&value); append<int32_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int64_t value) { if (!isLittleEndian) reverseBytes(&value); append<int64_t>(value); increaseItemCount(); return *this; }
 	ByteBuffer& operator<<(float value) { append<float>(value); increaseItemCount(); return *this; }
 	INLINE void increaseItemCount() {
 		if (this->size() < INDEX_OF_COUNT_ELEMENTS) return;
@@ -98,7 +97,7 @@ public:
 	ByteBuffer& operator>>(uint64_t& value) { value = read<uint64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int8_t& value) { value = read<int8_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int16_t& value) { value = read<int16_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>(); /* NO REVERSING BYTES */ return *this; }
+	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>();  if (!isLittleEndian) reverseBytes(&value); return *this; }
 	ByteBuffer& operator>>(int64_t& value) { value = read<int64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
 
 	ByteBuffer& operator>>(float& value) { value = read<float>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
@@ -384,7 +383,7 @@ public:
 			opcode = this->GetOpcode();
 		_storage.clear();
 		_rpos = _wpos = 0;
-		
+
 		reverseBytes(&opcode, 2);
 		append(&opcode, 2);
 		append(new const char[] {0, 0, 0, 0}, 4);
@@ -432,7 +431,7 @@ public:
 	};
 private:
 	bool Recv(SOCKET s, void* destination, int numberOfBytes, int& bytesReceived, int& SocketRet)
-	{		
+	{
 		bytesReceived = recv(s, (char*)destination, numberOfBytes, NULL);
 		if (bytesReceived == -1) {
 			SocketRet = SocketReturn::CONNECTION_LOST;
@@ -508,22 +507,22 @@ public:
 	}
 	bool Send(SOCKET s)
 	{
-		if (s == INVALID_SOCKET) 
+		if (s == INVALID_SOCKET)
 			return false;
 
 		uint32_t encodedPacketSize = htonl(this->storage().size());
-		if (!SendAll(s, &encodedPacketSize, sizeof(uint32_t))) 
-			return false;		
+		if (!SendAll(s, &encodedPacketSize, sizeof(uint32_t)))
+			return false;
 
 		if (!SendAll(s, this->_storage.data(), this->size()))
-			return false;		
+			return false;
 
 		return true;
 	}
 
-	string Print(string title="", size_t maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
+	string Print(string title = "", size_t maxPerLine = 16, bool utf_8 = true, int Flag = 1 | 2 | 4) {
 		try {
-			printf("\n\n*** %s (Size: %d) ***", title.c_str(),size());
+			printf("\n\n*** %s (Size: %d) ***", title.c_str(), size());
 			string Total = "";
 			string dumpstr = "";
 			for (size_t addr = 0; addr < size(); addr += maxPerLine)
@@ -575,23 +574,23 @@ public:
 			return "";
 		}
 	}
-	private:
-		bool SendAll(SOCKET s, const void* data, int numberOfBytes)
+private:
+	bool SendAll(SOCKET s, const void* data, int numberOfBytes)
+	{
+		int totalBytesSent = 0;
+
+		while (totalBytesSent < numberOfBytes)
 		{
-			int totalBytesSent = 0;
+			uint32_t bytesSent = 0;
+			char* bufferOffset = (char*)data + totalBytesSent;
+			if (!Send(s, bufferOffset, numberOfBytes - totalBytesSent, bytesSent))
+				return false;
 
-			while (totalBytesSent < numberOfBytes)
-			{
-				uint32_t bytesSent = 0;
-				char* bufferOffset = (char*)data + totalBytesSent;
-				if (!Send(s, bufferOffset, numberOfBytes - totalBytesSent, bytesSent))
-					return false;
-
-				totalBytesSent += bytesSent;
-			}
-
-			return true;
+			totalBytesSent += bytesSent;
 		}
+
+		return true;
+	}
 	struct Flags {
 	public:
 		const static int Encrypted = 1;
