@@ -1,8 +1,8 @@
 /*
 Author: Emre Demircan
-Date: 2021-08-31
+Date: 2021-09-13
 Github: emrecpp
-Version: 1.0.2
+Version: 1.0.3
 
 */
 #ifndef PACKET_H
@@ -105,14 +105,14 @@ public:
 
 	ByteBuffer& operator<<(vector<string>& value)
 	{
-		uint16_t len = (uint16_t)value.size();
-		append<uint16_t>(len);
+		uint32_t len = (uint32_t)value.size();
+		append<uint32_t>(len);
 
 		for (size_t i = 0; i < value.size(); ++i) {
 			string element = value.data()[i];
 			int elementLength = element.size();
 
-			append<uint16_t>(elementLength);
+			append<uint32_t>(elementLength);
 			append(element.c_str(), elementLength);
 		}
 		return *this;
@@ -120,13 +120,13 @@ public:
 
 
 	ByteBuffer& operator>>(vector<string>& value) {
-		uint16_t len = read<uint16_t>();
+		uint32_t len = read<uint32_t>();
 
 		if (_rpos + len <= size())
 		{
-			for (uint8_t i = 0; i < len; i++)
+			for (uint32_t i = 0; i < len; i++)
 			{
-				uint16_t sizeElement = read<uint16_t>();
+				uint32_t sizeElement = read<uint32_t>();
 
 				char* buffer = (char*)malloc(sizeElement + 1);
 				memset(buffer, 0, sizeElement + 1);
@@ -138,17 +138,12 @@ public:
 		return *this;
 	}
 	template <typename T>
-	ByteBuffer& operator<<(vector<T>& value)
-	{
-		if (!isLittleEndian) reverseBytes(&value);
-		uint16_t len = value.size();
-		append<uint16_t>(len);
+	ByteBuffer& operator<<(vector<T>& value){	
+		uint32_t len = value.size();
+		append<uint32_t>(len);
 
-		for (int i = 0; i < value.size(); ++i) {
+		for (uint32_t i = 0; i < value.size(); ++i) {
 			T element = value.data()[i];
-			//int elementLength = sizeof(element);
-
-			//append<uint16_t>(elementLength);
 			append<T>(element);
 		}
 		return *this;
@@ -156,11 +151,11 @@ public:
 
 	template <typename T>
 	ByteBuffer& operator>>(vector<T>& value) {
-		uint16_t len = read<uint16_t>();
+		uint32_t len = read<uint32_t>();
 
 		if (_rpos + len <= size())
 		{
-			for (uint8_t i = 0; i < len; i++)
+			for (uint32_t i = 0; i < len; i++)
 			{
 				//uint16_t sizeElement = read<uint16_t>();
 				uint16_t sizeElement = sizeof(T);
@@ -194,7 +189,6 @@ public:
 
 	ByteBuffer& operator>>(std::string& value)
 	{
-		//uint16_t len;		
 		uint32_t len;
 		if (!value.empty())
 			value.clear();
@@ -212,7 +206,7 @@ public:
 	template <typename T>
 	ByteBuffer& operator>>(T& value)
 	{
-		uint16_t len = sizeof(T);
+		uint32_t len = sizeof(T);
 		value = T();
 
 		if (_rpos + len <= size())
@@ -243,7 +237,6 @@ public:
 
 	template <typename T> T read(size_t pos) const
 	{
-		//ASSERT(pos + sizeof(T) <= size());
 		if (pos + sizeof(T) > size())
 			return (T)0;
 
@@ -295,10 +288,6 @@ public:
 
 		if (_storage.size() < _wpos + cnt)
 			_storage.resize(_wpos + cnt);
-		/*if (!isLittleEndian) {
-
-			reverseBytes((void*)(src), cnt);
-		}*/
 
 		memcpy(&_storage[_wpos], src, cnt);
 		_wpos += cnt;
@@ -318,26 +307,22 @@ public:
 	INLINE void append(const ByteBuffer& buffer) { if (buffer.size() > 0) append(buffer.contents(), buffer.size()); }
 	INLINE void append(const ByteBuffer& buffer, size_t len)
 	{
-		//ASSERT(buffer.rpos() + len <= buffer.size());
 		append(buffer.contents() + buffer.rpos(), len);
 	}
 
 	void readFrom(ByteBuffer& buffer, size_t len)
 	{
-		//ASSERT(buffer.rpos() + len <= buffer.size());
 		append(buffer.contents() + buffer.rpos(), len);
 		buffer.rpos(buffer.rpos() + len);
 	}
 
 	void put(size_t pos, const void* src, size_t cnt)
 	{
-		//ASSERT(pos + cnt <= size());
 		memcpy(&_storage[pos], src, cnt);
 	}
 
-protected:
-	// read and write positions
-	size_t _rpos, _wpos;
+protected:	
+	size_t _rpos, _wpos; // read and write positions
 	std::vector<uint8_t> _storage;
 };
 class Packet : public ByteBuffer
@@ -378,7 +363,6 @@ public:
 	}
 	void clear(uint16_t opcode = 0)
 	{
-		//if (size() > 0 && GetOpcode() != 0)
 		if (opcode == 0)
 			opcode = this->GetOpcode();
 		_storage.clear();
@@ -489,9 +473,13 @@ public:
 		if (!RecvAll(s, &encodedSize, sizeof(uint32_t), SonucRet))
 			return false;
 
-		uint32_t bufferSize = ntohl(encodedSize);
+		if (encodedSize == 0)
+			return false;
 
+
+		uint32_t bufferSize = ntohl(encodedSize);
 		dwPktSize = (u_long)bufferSize;
+
 		this->storage().resize(bufferSize);
 
 
