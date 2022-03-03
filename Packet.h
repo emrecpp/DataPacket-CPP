@@ -26,13 +26,12 @@ Version: 1.0.4
 using std::string; using std::vector;
 #pragma warning(disable:4996) //#define _CRT_SECURE_NO_WARNINGS
 class ByteBuffer
-{
-	const static int INDEX_OF_FLAG = 2;
-	const static int INDEX_OF_COUNT_ELEMENTS = 3;
+{	
 	const static size_t DEFAULT_SIZE = 32;
 public:
 	bool isLittleEndian                      = false;
-		
+	const static int INDEX_OF_FLAG = 2;
+	const static int INDEX_OF_COUNT_ELEMENTS = 3;
 
 	ByteBuffer() : _rpos(0), _wpos(0) { _storage.reserve(DEFAULT_SIZE); }
 	ByteBuffer(size_t res, bool enabledLittleEndian = false) : _rpos(0), _wpos(0), isLittleEndian(enabledLittleEndian) { _storage.reserve(res <= 0 ? DEFAULT_SIZE : res); }
@@ -66,7 +65,7 @@ public:
 	{
 		/*if (!isLittleEndian)
 			reverseBytes(&value, sizeof(value));*/
-		append<T>(value); return *this;
+		append<T>(value); increaseItemCount(); return *this;
 	}
 
 	ByteBuffer& operator<<(ByteBuffer& value)
@@ -383,6 +382,12 @@ public:
 		reverseBytes(&opcode, 2);
 		return opcode;
 	}
+	INLINE uint8_t GetItemsCount()
+	{
+		if (size() <= INDEX_OF_COUNT_ELEMENTS) return 0;
+		return this->_storage[INDEX_OF_COUNT_ELEMENTS];
+	}
+
 
 	INLINE Packet Initialize(uint16_t opcode)
 	{
