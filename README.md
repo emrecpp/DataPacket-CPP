@@ -50,7 +50,7 @@ SystemTime: 2022-03-03
 
 
 
-Little Endian (Packet(0x1234, false)):
+Big Endian (Packet(0x1234, false)):
 
 *** MY TITLE (Size: 38) ***
 00000000 12 34 00 03 00 00 00 00 00 04 45 6D 72 65 00 00    .4........Emre..
@@ -59,7 +59,7 @@ Little Endian (Packet(0x1234, false)):
 
 
 
-Big Endian    (Packet(0x1234, true)):
+Little Endian    (Packet(0x1234, true)):
 
 *** MY TITLE (Size: 38) ***
 00000000 12 34 00 03 00 00 00 00 00 04 45 6D 72 65 7B 00    .4........Emre{.
