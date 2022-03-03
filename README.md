@@ -15,7 +15,7 @@ Python: https://github.com/emrecpp/PacketHandler
 
 int main(){
     // On Send:
-    Packet paket = Packet(0x1234, true);
+    Packet paket = Packet(0x1234, false);
     SYSTEMTIME NowTime; // Custom struct (Note: struct size must be lower than 16 bytes else it will be corrupted.)
     GetSystemTime(&NowTime);
 
