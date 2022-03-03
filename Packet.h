@@ -568,10 +568,9 @@ private:
 
 		return true;
 	}
-	struct Flags {
-	public:
-		const static int Encrypted    = 1;
-		const static int LittleEndian = 2;
+	enum class Flags : int {
+		Encrypted    = 1,
+		LittleEndian = 2
 	};
 
 };
