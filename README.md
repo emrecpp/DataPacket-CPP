@@ -1,11 +1,11 @@
 # DataPacket for C++
 Store data as packet. Send, Recv, Encrypt it.
 
-For C#: https://github.com/emrecpp/DataPacket-CSharp
+C#: https://github.com/emrecpp/DataPacket-CSharp
 
-For Python: https://github.com/emrecpp/PacketHandler
+Python: https://github.com/emrecpp/PacketHandler
 
-# Example Usage
+# Usage sample
 ```cpp
 
 #include <iostream>
@@ -14,50 +14,57 @@ For Python: https://github.com/emrecpp/PacketHandler
 
 
 int main(){
-    Packet paket = Packet(0xDFFF, false);
-    SYSTEMTIME NowTime;
+    // On Send:
+    Packet paket = Packet(0x1234, true);
+    SYSTEMTIME NowTime; // Custom struct (Note: struct size must be lower than 16 bytes else it will be corrupted.)
     GetSystemTime(&NowTime);
-    
+
     paket << "Emre" << 123 << 1.5f << NowTime;
-    
-    string name;
-    int number;
-    float f;
-    SYSTEMTIME SystemTimeStruct;
-    paket >> name >> number >> f >> SystemTimeStruct;
-    printf("Opcode: %d\n\nName: %s\nNumber: %d\nFloat: %f\nSystemTime: %d-%02d-%02d\n", paket.GetOpcode(), name.c_str(), number, f,
-      SystemTimeStruct.wYear, SystemTimeStruct.wMonth, SystemTimeStruct.wDay);
-      
-    paket.Print();
+    bool sent = paket.Send(socket);
+
+
+
+    // On Recv:
+    Packet receivedPacket = Packet();
+    if (receivedPaket.Recv(socket)) {		
+        string name; int number; float f; SYSTEMTIME SystemTimeStruct;
+        paket >> name >> number >> f >> SystemTimeStruct;
+        printf("Opcode: %X\n\nName: %s\nNumber: %d\nFloat: %f\nSystemTime: %d-%02d-%02d\n", paket.GetOpcode(), name.c_str(), number, f,
+            SystemTimeStruct.wYear, SystemTimeStruct.wMonth, SystemTimeStruct.wDay);
+
+        paket.Print("MY TITLE");
+    }// else connection lost
     std::getchar();
-    return 0;
+    return 0;    
 }
 ```
 
 
 #### Output:
 ```
-Opcode: 57343 (0xDFFF)
+Opcode: 1234
 Name: Emre
 Number: 123
 Float: 1.500000
-SystemTime: 2021-02-09
+SystemTime: 2022-03-03
 
 
-Little Endian
 
-Normal Print:
+Little Endian (Packet(0x1234, false)):
 
-00000000 df ff 00 03 00 00 00 00 00 0d 45 6d 72 65 20 44    ..........Emre.D.........<.....................
-00000010 65 6d 69 72 63 61 6e 7b 00 00 00 00 00 c0 3f e5    emircan{......?.........5="....................
-00000020 07 02 00 02 00 09 00 14 00 0d 00 25 00 23 01       ...........%.#...........<.......f..P*.........
+*** MY TITLE (Size: 38) ***
+00000000 12 34 00 03 00 00 00 00 00 04 45 6D 72 65 00 00    .4........Emre..
+00000010 00 7B 3F C0 00 00 E6 07 03 00 04 00 03 00 0B 00    .{?.............
+00000020 38 00 10 00 80 01                                   8.....
 
-Big Endian
 
-Normal Print:
 
-00000000 df ff 00 03 00 00 00 00 00 0d 45 6d 72 65 20 44    ..........Emre.D........E7.....................
-00000010 65 6d 69 72 63 61 6e 00 00 00 7b 3f c0 00 00 e5    emircan...{?............}7.....................
-00000020 07 02 00 02 00 09 00 14 00 0e 00 0f 00 cd 00       ........................u7.....................
+Big Endian    (Packet(0x1234, true)):
+
+*** MY TITLE (Size: 38) ***
+00000000 12 34 00 03 00 00 00 00 00 04 45 6D 72 65 7B 00    .4........Emre{.
+00000010 00 00 00 00 C0 3F E6 07 03 00 04 00 03 00 0B 00    .....?..........
+00000020 38 00 10 00 80 01                                   8.....
+
 ```
 
