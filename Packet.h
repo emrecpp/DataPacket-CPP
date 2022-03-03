@@ -31,7 +31,7 @@ class ByteBuffer
 public:
 	bool isLittleEndian                      = false;
 	const static int INDEX_OF_FLAG = 2;
-	const static int INDEX_OF_COUNT_ELEMENTS = 3;
+	const static int INDEX_OF_COUNT_ITEMS = 3;
 
 	ByteBuffer() : _rpos(0), _wpos(0) { _storage.reserve(DEFAULT_SIZE); }
 	ByteBuffer(size_t res, bool enabledLittleEndian = false) : _rpos(0), _wpos(0), isLittleEndian(enabledLittleEndian) { _storage.reserve(res <= 0 ? DEFAULT_SIZE : res); }
@@ -54,10 +54,10 @@ public:
 	ByteBuffer& operator<<(int64_t value)  { if (!isLittleEndian) reverseBytes(&value, sizeof(uint64_t)); append<int64_t>(value);  increaseItemCount(); return *this; }
 	ByteBuffer& operator<<(float value)    { if (!isLittleEndian) reverseBytes(&value, sizeof(float));    append<float>(value);    increaseItemCount(); return *this; }
 	INLINE void increaseItemCount() {
-		if (this->size() < INDEX_OF_COUNT_ELEMENTS) return;
+		if (this->size() < INDEX_OF_COUNT_ITEMS) return;
 
-		if (_storage.at(INDEX_OF_COUNT_ELEMENTS) + 1 < 255)
-			_storage[INDEX_OF_COUNT_ELEMENTS] += 1;
+		if (_storage.at(INDEX_OF_COUNT_ITEMS) + 1 < 255)
+			_storage[INDEX_OF_COUNT_ITEMS] += 1;
 	}
 
 	template <typename T> /* Custom Struct/Class, don't use std::string because maximum allowed character size is 16. bigger than 16 bytes will be corrupted.*/
@@ -384,8 +384,8 @@ public:
 	}
 	INLINE uint8_t GetItemsCount()
 	{
-		if (size() <= INDEX_OF_COUNT_ELEMENTS) return 0;
-		return this->_storage[INDEX_OF_COUNT_ELEMENTS];
+		if (size() <= INDEX_OF_COUNT_ITEMS) return 0;
+		return this->_storage[INDEX_OF_COUNT_ITEMS];
 	}
 
 
