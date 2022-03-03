@@ -28,11 +28,11 @@ int main(){
     Packet receivedPacket = Packet();
     if (receivedPaket.Recv(socket)) {		
         string name; int number; float f; SYSTEMTIME SystemTimeStruct;
-        paket >> name >> number >> f >> SystemTimeStruct;
-        printf("Opcode: %X\n\nName: %s\nNumber: %d\nFloat: %f\nSystemTime: %d-%02d-%02d\n", paket.GetOpcode(), name.c_str(), number, f,
+        receivedPacket >> name >> number >> f >> SystemTimeStruct;
+        printf("Opcode: %X\n\nName: %s\nNumber: %d\nFloat: %f\nSystemTime: %d-%02d-%02d\n", receivedPacket.GetOpcode(), name.c_str(), number, f,
             SystemTimeStruct.wYear, SystemTimeStruct.wMonth, SystemTimeStruct.wDay);
 
-        paket.Print("MY TITLE");
+        receivedPacket.Print("MY TITLE");
     }// else connection lost
     std::getchar();
     return 0;    
