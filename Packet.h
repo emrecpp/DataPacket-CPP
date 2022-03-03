@@ -1,8 +1,8 @@
 /*
 Author: Emre Demircan
-Date: 2021-09-13
+Date: 2022-03-03
 Github: emrecpp
-Version: 1.0.3
+Version: 1.0.4
 
 */
 #ifndef PACKET_H
@@ -27,15 +27,12 @@ using std::string; using std::vector;
 #pragma warning(disable:4996) //#define _CRT_SECURE_NO_WARNINGS
 class ByteBuffer
 {
-
-public:
-	bool isLittleEndian = false;
-
-	const static size_t DEFAULT_SIZE = 32;
 	const static int INDEX_OF_FLAG = 2;
 	const static int INDEX_OF_COUNT_ELEMENTS = 3;
-
-
+	const static size_t DEFAULT_SIZE = 32;
+public:
+	bool isLittleEndian                      = false;
+		
 
 	ByteBuffer() : _rpos(0), _wpos(0) { _storage.reserve(DEFAULT_SIZE); }
 	ByteBuffer(size_t res, bool enabledLittleEndian = false) : _rpos(0), _wpos(0), isLittleEndian(enabledLittleEndian) { _storage.reserve(res <= 0 ? DEFAULT_SIZE : res); }
@@ -44,27 +41,19 @@ public:
 
 
 
-	template <typename T> void append(T value) {
-		// Hard coded, no reversing bytes
-		append((uint8_t*)&value, sizeof(value));
-	}
+	template <typename T> void append(T value)          { append((uint8_t*)&value, sizeof(value));	 }
 	template <typename T> void put(size_t pos, T value) { put(pos, (uint8_t*)&value, sizeof(value)); }
 
-	ByteBuffer& operator<<(bool value) { append(&value, 1); increaseItemCount(); return *this; }
-
-	ByteBuffer& operator<<(uint8_t value)
-	{
-		if (!isLittleEndian) reverseBytes(&value);
-		append<uint8_t>(value); return *this;
-	}
-	ByteBuffer& operator<<(uint16_t value) { if (!isLittleEndian) reverseBytes(&value); append<uint16_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(uint32_t value) { if (!isLittleEndian) reverseBytes(&value); append<uint32_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(uint64_t value) { if (!isLittleEndian) reverseBytes(&value); append<uint64_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int8_t value) { append<int8_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int16_t value) { if (!isLittleEndian) reverseBytes(&value); append<int16_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int32_t value) { if (!isLittleEndian) reverseBytes(&value); append<int32_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(int64_t value) { if (!isLittleEndian) reverseBytes(&value); append<int64_t>(value); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(float value) { append<float>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(bool value)     {                                                              append(&value, 1);       increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint8_t value)  {                                                              append<uint8_t>(value);  increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint16_t value) { if (!isLittleEndian) reverseBytes(&value, sizeof(uint16_t)); append<uint16_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint32_t value) { if (!isLittleEndian) reverseBytes(&value, sizeof(uint32_t)); append<uint32_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(uint64_t value) { if (!isLittleEndian) reverseBytes(&value, sizeof(uint64_t)); append<uint64_t>(value); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int8_t value)   {                                                              append<int8_t>(value);   increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int16_t value)  { if (!isLittleEndian) reverseBytes(&value, sizeof(uint16_t)); append<int16_t>(value);  increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int32_t value)  { if (!isLittleEndian) reverseBytes(&value, sizeof(uint32_t)); append<int32_t>(value);  increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(int64_t value)  { if (!isLittleEndian) reverseBytes(&value, sizeof(uint64_t)); append<int64_t>(value);  increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(float value)    { if (!isLittleEndian) reverseBytes(&value, sizeof(float));    append<float>(value);    increaseItemCount(); return *this; }
 	INLINE void increaseItemCount() {
 		if (this->size() < INDEX_OF_COUNT_ELEMENTS) return;
 
@@ -88,19 +77,18 @@ public:
 		return *this;
 	}
 
-	const uint8_t* contents() const { return &_storage[0]; }
+	const uint8_t* contents() const         { return &_storage[0]; }
 
-	ByteBuffer& operator>>(bool& value) { value = read<char>() > 0 ? true : false; return *this; }
-	ByteBuffer& operator>>(uint8_t& value) { value = read<uint8_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(uint16_t& value) { value = read<uint16_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(uint32_t& value) { value = read<uint32_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(uint64_t& value) { value = read<uint64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int8_t& value) { value = read<int8_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int16_t& value) { value = read<int16_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int32_t& value) { value = read<int32_t>();  if (!isLittleEndian) reverseBytes(&value); return *this; }
-	ByteBuffer& operator>>(int64_t& value) { value = read<int64_t>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
-
-	ByteBuffer& operator>>(float& value) { value = read<float>(); if (!isLittleEndian) reverseBytes(&value); return *this; }
+	ByteBuffer& operator>>(bool& value)     { value = read<char>() > 0 ? true : false;  return *this; }
+	ByteBuffer& operator>>(uint8_t& value)  { value = read<uint8_t>();                  return *this; }
+	ByteBuffer& operator>>(uint16_t& value) { value = read<uint16_t>(); if (!isLittleEndian) reverseBytes(&value, sizeof(uint16_t)); return *this; }
+	ByteBuffer& operator>>(uint32_t& value) { value = read<uint32_t>(); if (!isLittleEndian) reverseBytes(&value, sizeof(uint32_t)); return *this; }
+	ByteBuffer& operator>>(uint64_t& value) { value = read<uint64_t>(); if (!isLittleEndian) reverseBytes(&value, sizeof(uint64_t)); return *this; }
+	ByteBuffer& operator>>(int8_t& value)   { value = read<int8_t>();																 return *this; }
+	ByteBuffer& operator>>(int16_t& value)  { value = read<int16_t>();  if (!isLittleEndian) reverseBytes(&value, sizeof(int16_t));  return *this; }
+	ByteBuffer& operator>>(int32_t& value)  { value = read<int32_t>();  if (!isLittleEndian) reverseBytes(&value, sizeof(int32_t));  return *this; }
+	ByteBuffer& operator>>(int64_t& value)  { value = read<int64_t>();  if (!isLittleEndian) reverseBytes(&value, sizeof(int64_t));  return *this; }
+	ByteBuffer& operator>>(float& value)    { value = read<float>();    if (!isLittleEndian) reverseBytes(&value, sizeof(float));    return *this; }
 
 
 	ByteBuffer& operator<<(vector<string>& value)
@@ -171,8 +159,10 @@ public:
 		return *this;
 	}
 
-	ByteBuffer& operator<<(const std::string& value) { *this << value.c_str(); increaseItemCount(); return *this; }
-	ByteBuffer& operator<<(std::string& value) { *this << value.c_str(); increaseItemCount(); return *this; }
+	ByteBuffer& operator<<(const std::string& value) { *this << value.c_str(); increaseItemCount(); return *this;    }
+	ByteBuffer& operator<<(std::string& value)       { *this << value.c_str(); increaseItemCount(); return *this;    }
+	ByteBuffer& operator<<(char* str)                { *this << (const char*)str; increaseItemCount(); return *this; }
+
 	ByteBuffer& operator<<(const char* str)
 	{
 		increaseItemCount();
@@ -185,7 +175,6 @@ public:
 		return *this;
 	}
 
-	ByteBuffer& operator<<(char* str) { *this << (const char*)str; increaseItemCount(); return *this; }
 
 	ByteBuffer& operator>>(std::string& value)
 	{
@@ -216,12 +205,12 @@ public:
 		}
 		return *this;
 	}
-	uint8_t operator[](size_t pos) { return read<uint8_t>(pos); }
+	uint8_t operator[](size_t pos)       { return read<uint8_t>(pos); }
 
-	INLINE size_t rpos() const { return _rpos; };
-	INLINE size_t rpos(size_t rpos) { return _rpos = rpos; };
-	INLINE size_t wpos() const { return _wpos; };
-	INLINE size_t wpos(size_t wpos) { return _wpos = wpos; };
+	INLINE size_t rpos()		   const { return _rpos;              };
+	INLINE size_t rpos(size_t rpos)      { return _rpos = rpos;       };
+	INLINE size_t wpos()           const { return _wpos;              };
+	INLINE size_t wpos(size_t wpos)      { return _wpos = wpos;       };
 
 	template <typename T> T read()
 	{
@@ -397,7 +386,7 @@ public:
 
 	INLINE Packet Initialize(uint16_t opcode)
 	{
-		clear(opcode); // reverseBytes(&opcode,2);
+		clear(opcode);
 		return *this;
 	}
 
@@ -495,7 +484,7 @@ public:
 	}
 	bool Send(SOCKET s)
 	{
-		if (s == INVALID_SOCKET)
+		if (s == INVALID_SOCKET || s == NULL)
 			return false;
 
 		uint32_t encodedPacketSize = htonl(this->storage().size());
@@ -581,7 +570,7 @@ private:
 	}
 	struct Flags {
 	public:
-		const static int Encrypted = 1;
+		const static int Encrypted    = 1;
 		const static int LittleEndian = 2;
 	};
 
